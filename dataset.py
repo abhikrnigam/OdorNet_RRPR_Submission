@@ -2,7 +2,6 @@ import numpy as np
 import torch
 from torch.utils.data import Dataset
 from pathlib import Path
-from sklearn.model_selection import train_test_split
 
 
 class ENoseDataset(Dataset):
@@ -10,13 +9,19 @@ class ENoseDataset(Dataset):
         self,
         root_dir: str,
         split: str,
-        val_size: float = 0.2,
-        test_size: float = 0.1,
-        random_state: int = 42
     ):
         """
-        root_dir: processed_data/
+        root_dir: OdorNet_Dataset/
         split: 'train', 'val', or 'test'
+
+        Dataset structure:
+            root_dir/
+                <class_name>/
+                    <class_name>_cycle_0.npy
+                    ...
+                    <class_name>_cycle_24.npy
+        Each .npy file has shape (9, 32, 8).
+        25 cycles per class across 50 classes = 1,250 samples total.
         """
 
         assert split in {"train", "val", "test"}
@@ -25,58 +30,45 @@ class ENoseDataset(Dataset):
         self.split = split
 
         # ---------- Step 1: label mapping ----------
-        orig_dir = self.root_dir / "orig"
         self.class_names = sorted(
-            [d.name for d in orig_dir.iterdir() if d.is_dir()]
+            [d.name for d in self.root_dir.iterdir() if d.is_dir()]
         )
+        self.label_map = {name: idx for idx, name in enumerate(self.class_names)}
 
-        self.label_map = {
-            name: idx for idx, name in enumerate(self.class_names)
-        }
+        # ---------- Step 2: assign cycles to splits ----------
+        # Cycles are grouped in blocks of 5 (5 recordings per session × 5 sessions).
+        # Within each block: indices 0,1,2 → train | index 3 → val | index 4 → test
+        # Train uses the corresponding indices across all 5 blocks (15 samples/class).
+        # Val and test use only the first block (1 sample/class each).
 
-        # ---------- Step 2: collect original samples ----------
-        samples_by_class = {}
+        BLOCK = 5
+        NUM_BLOCKS = 5
 
-        for class_name in self.class_names:
-            class_dir = orig_dir / class_name
-            files = sorted(class_dir.glob("*.npy"))
-            samples_by_class[class_name] = files
-
-        # ---------- Step 3: split based on orig only ----------
-        train_samples = []
-        val_samples = []
-        test_samples = []
-
-        for class_name, files in samples_by_class.items():
-            assert len(files) >= 5, f"Not enough samples for class {class_name}"
-
-            train_files = files[:3]
-            val_files = files[3:4]
-            test_files = files[4:5]
-
-            train_samples.extend([(class_name, f.name) for f in train_files])
-            val_samples.extend([(class_name, f.name) for f in val_files])
-            test_samples.extend([(class_name, f.name) for f in test_files])
+        train_indices = [b * BLOCK + i for b in range(NUM_BLOCKS) for i in range(3)]  # 15 per class
+        val_indices   = [3]   # 1 per class
+        test_indices  = [4]   # 1 per class
 
         if split == "train":
-            base_samples = train_samples
+            cycle_indices = train_indices
         elif split == "val":
-            base_samples = val_samples
+            cycle_indices = val_indices
         else:
-            base_samples = test_samples
+            cycle_indices = test_indices
 
-        # ---------- Step 4: expand samples for training ----------
+        # ---------- Step 3: collect samples ----------
         self.samples = []
 
-        if split == "train":
-            aug_dirs = ["orig", "jitter", "scaling", "time_warp", "drift"]
-        else:
-            aug_dirs = ["orig"]
+        for class_name in self.class_names:
+            class_dir = self.root_dir / class_name
+            # Sort files numerically by cycle number
+            files = sorted(
+                class_dir.glob("*.npy"),
+                key=lambda p: int(p.stem.split("_cycle_")[1])
+            )
+            assert len(files) == 25, f"Expected 25 cycles for {class_name}, found {len(files)}"
 
-        for class_name, file_name in base_samples:
-            for aug in aug_dirs:
-                npy_path = self.root_dir / aug / class_name / file_name
-                self.samples.append((npy_path, class_name))
+            for idx in cycle_indices:
+                self.samples.append((files[idx], class_name))
 
     def __len__(self):
         return len(self.samples)
@@ -91,5 +83,3 @@ class ENoseDataset(Dataset):
         y = torch.tensor(y, dtype=torch.long)
 
         return x, y
-
-

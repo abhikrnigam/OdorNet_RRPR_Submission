@@ -3,7 +3,7 @@ from dataset import ENoseDataset
 
 
 def create_dataloaders(
-    data_dir="processed_data/",
+    data_dir="OdorNet_Dataset/",
     batch_size=8,
     num_workers=4
 ):

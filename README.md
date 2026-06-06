@@ -35,22 +35,21 @@ Logits (50 classes)
 
 ## Dataset
 
-The **OdorNet Dataset** contains sensor readings from 50 odor categories across 5 augmentation types (original, jitter, scaling, time warp, sensor drift), yielding 1,250 samples total.
+The **OdorNet Dataset** contains sensor readings from 50 odor categories, with 25 recordings per class across 50 classes — 1,250 samples total. Each sample is a `.npy` file of shape `(9, 32, 8)` — 9 patches × 32 time steps × 8 sensor channels.
 
-**Download:** [OdorNet Dataset on Google Drive](https://drive.google.com/drive/folders/1c4Url2e1Mh6IKcmydLvuplJjsLhlX1ZC?usp=sharing)
+**Download:** [OdorNet Dataset on Google Drive](https://drive.google.com/drive/folders/11X91-wKewPPFiLBCo19TKjICJOGwFzmn?usp=sharing)
 
-After downloading, place the dataset folder as:
+After downloading, place the dataset folder at the repo root:
 ```
-Enose/
-└── processed_data/
-    ├── orig/
-    ├── jitter/
-    ├── scaling/
-    ├── time_warp/
-    └── drift/
+OdorNet_RRPR_Submission/
+└── OdorNet_Dataset/
+    ├── ajwain/
+    │   ├── ajwain_cycle_0.npy
+    │   ├── ajwain_cycle_1.npy
+    │   └── ... (25 files)
+    ├── almonds/
+    └── ... (50 classes total)
 ```
-
-Each subdirectory contains 50 class folders, each with 5 `.npy` files of shape `(9, 32, 8)` — 9 patches × 32 time steps × 8 sensor channels.
 
 ---
 
@@ -73,8 +72,8 @@ pip install -r requirements.txt
 ### 1. Clone the repository
 
 ```bash
-git clone https://github.com/abhikrnigam/Enose.git
-cd Enose
+git clone https://github.com/abhikrnigam/OdorNet_RRPR_Submission.git
+cd OdorNet_RRPR_Submission
 ```
 
 ### 2. Create a virtual environment (recommended)
@@ -93,7 +92,7 @@ pip install -r requirements.txt
 
 ### 4. Download the dataset
 
-Download from the [Google Drive link](https://drive.google.com/drive/folders/1c4Url2e1Mh6IKcmydLvuplJjsLhlX1ZC?usp=sharing) and place it at `processed_data/` inside the repo root.
+Download from the [Google Drive link](https://drive.google.com/drive/folders/11X91-wKewPPFiLBCo19TKjICJOGwFzmn?usp=sharing) and place the `OdorNet_Dataset/` folder at the repo root as shown above.
 
 ### 5. Train the model
 
@@ -120,33 +119,22 @@ python inference.py --input path/to/sample.npy
 ## Repository Structure
 
 ```
-Enose/
+OdorNet_RRPR_Submission/
+├── OdorNet_Dataset/              # Dataset (download from Google Drive)
+│   ├── ajwain/
+│   ├── almonds/
+│   └── ... (50 classes)
 ├── models/
 │   ├── cnn_transformer_kan.py   # Proposed SOTA model
-│   ├── kan.py                   # KAN layer implementation
-│   ├── cnn_transformer.py       # Baseline: CNN + Transformer
-│   ├── transformer.py           # Baseline: Transformer only
-│   ├── lstm.py                  # Baseline: LSTM
-│   ├── rnn.py                   # Baseline: RNN
-│   └── mlp.py                   # Baseline: MLP
-├── utils/
-│   ├── normalisation.py
-│   ├── segmentation.py
-│   ├── jitter.py
-│   ├── scaling.py
-│   ├── time_warping.py
-│   ├── sensor_drift.py
-│   └── outlier_removal.py
-├── train_cnn_transformer_kan.py  # Training script (proposed model)
-├── train_cnn_transformer.py      # Training script (baseline)
-├── train_lstm.py
-├── train_rnn.py
-├── train_transformer.py
-├── train_mlp.py
+│   └── kan.py                   # KAN layer implementation
+├── train_cnn_transformer_kan.py  # Training script
 ├── dataloader_updated.py         # DataLoader factory
 ├── dataset.py                    # ENoseDataset class
 ├── inference.py                  # Single-sample inference
+├── cnn_transformer_final.pt      # Trained model weights
+├── label_map.json                # Class index mapping
 ├── requirements.txt
+├── MODELS.md                     # Architecture & hyperparameter details for all models
 ├── LICENSE
 └── README.md
 ```
@@ -155,18 +143,18 @@ Enose/
 
 ## Baseline Comparisons
 
-The following baseline models are included for comparison:
+The following baseline models were evaluated in the paper:
 
-| Model | Script | Top-1 Acc |
-|---|---|---|
-| CNN + Transformer + KAN (proposed) | `train_cnn_transformer_kan.py` | 75.3% |
-| CNN + Transformer (ablation) | `train_cnn_transformer.py` | 56.2% |
-| Encoder-Only Transformer | `train_transformer.py` | 45.7% |
-| MLP | `train_mlp.py` | 33.3% |
-| LSTM | `train_lstm.py` | 32.8% |
-| RNN | `train_rnn.py` | 30.9% |
+| Model | Top-1 Acc |
+|---|---|
+| CNN + Transformer + KAN (proposed) | 75.3% |
+| CNN + Transformer (ablation) | 56.2% |
+| Encoder-Only Transformer | 45.7% |
+| MLP | 33.3% |
+| LSTM | 32.8% |
+| RNN | 30.9% |
 
-All baselines use the same dataset split and dataloader. For full architecture details, layer configurations, and hyperparameters of every model, see [MODELS.md](MODELS.md).
+For full architecture details, layer configurations, and hyperparameters of every model, see [MODELS.md](MODELS.md).
 
 ---
 

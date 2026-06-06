@@ -23,8 +23,10 @@ NUM_HEADS = 4
 NUM_LAYERS = 2
 DROPOUT = 0.4
 
+
+# This section is only relevant if WandB is being used. It won't affect training if WandB is disabled.
 WANDB_PROJECT = "e-nose-odor-classification"
-RUN_NAME = "CNN_Transformer___min_max_norm"
+RUN_NAME = "CNN_Transformer_KAN"
 # =========================================
 
 
@@ -111,7 +113,6 @@ def evaluate_oils_only(model, loader, criterion):
         correct += (preds == y).sum().item()
         batch_n = y.size(0)
         total += batch_n
-        # loss is averaged over the (masked) batch; weight by batch size
         total_loss += loss.item() * batch_n
 
     if total == 0:
@@ -169,16 +170,7 @@ def main():
         train_loss, train_acc = train_one_epoch(
             model, train_loader, criterion, optimizer
         )
-
-        #val_loss, val_acc = evaluate(model, val_loader, criterion)
         val_loss, val_top1, val_top5 = evaluate(model, val_loader, criterion)
-
-
-        #oils_loss, oils_acc = evaluate_oils_only(model, val_loader, criterion)
-
-        #if oils_acc is not None:
-        #    print(f"Oils-only Val Acc: {oils_acc:.4f}")
-
         if use_wandb:
             wandb.log({
                 "epoch": epoch,
